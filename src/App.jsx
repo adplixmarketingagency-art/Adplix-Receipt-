@@ -13,6 +13,8 @@ import {
   formatMoney,
   calculateTotals,
   validateReceipt,
+  getNextReceiptNumber,
+  SERVICE_OPTIONS,
 } from "./lib/receipt.js";
 import { generateReceipt } from "./lib/document.js";
 
@@ -96,7 +98,7 @@ function PreviewPage({ page, index }) {
 }
 
 export default function App() {
-  const [receipt, setReceipt] = useState(createInitialReceipt);
+  const [receipt, setReceipt] = useState(null);
   const [errors, setErrors] = useState({});
   const [preview, setPreview] = useState(null);
   const [previewError, setPreviewError] = useState("");
@@ -110,13 +112,18 @@ export default function App() {
   latestReceipt.current = receipt;
   let totals = null;
   try {
-    totals = calculateTotals(receipt);
+    totals = receipt ? calculateTotals(receipt) : null;
   } catch {
     /* Incomplete drafts must remain editable. */
   }
-  const currency = currencyFor(receipt.currency);
+  const currency = receipt ? currencyFor(receipt.currency) : CURRENCIES[0];
 
   useEffect(() => {
+    if (!receipt) {
+      setPreview(null);
+      setPreviewLoading(false);
+      return undefined;
+    }
     let cancelled = false;
     setPreviewLoading(true);
     setPreviewError("");
@@ -138,6 +145,16 @@ export default function App() {
       clearTimeout(timer);
     };
   }, [receipt, previewAttempt]);
+
+  function startNewReceipt() {
+    setReceipt(createInitialReceipt(getNextReceiptNumber(receipt?.number)));
+    setErrors({});
+    setPreview(null);
+    setPreviewError("");
+    setPreviewLoading(true);
+    setPreviewAttempt(0);
+    setExportError("");
+  }
 
   useEffect(
     () => () => {
@@ -254,6 +271,35 @@ export default function App() {
     ...extra,
   });
 
+  if (!receipt) {
+    return (
+      <div className="app-shell">
+        <header className="site-header">
+          <div className="brand">
+            <img src="/assets/adplix-logo.png" alt="" />
+            <span className="brand-name">
+              adplix <strong>media</strong>
+            </span>
+            <span className="brand-divider" />
+            <span className="brand-tag">RECEIPT STUDIO</span>
+          </div>
+        </header>
+        <main className="empty-state">
+          <img src="/assets/adplix-logo.png" alt="" />
+          <h1>create a receipt?</h1>
+          <p>Start with a fresh receipt.</p>
+          <button
+            className="button-primary"
+            type="button"
+            onClick={startNewReceipt}
+          >
+            New Receipt
+          </button>
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="app-shell">
       <header className="site-header">
@@ -289,6 +335,13 @@ export default function App() {
           >
             <ArrowDownToLine size={18} aria-hidden="true" />{" "}
             {exporting ? "Preparing PDF…" : "Download PDF"}
+          </button>
+          <button
+            className="button-secondary compact-new"
+            type="button"
+            onClick={startNewReceipt}
+          >
+            New Receipt
           </button>
         </div>
 
@@ -481,13 +534,13 @@ export default function App() {
                         </button>
                       </div>
                       <Field
-                        label="Description"
+                        label="Service"
                         id={`service-${service.id}-name`}
                         error={errors[`services.${service.id}.name`]}
                       >
-                        <textarea
+                        <input
+                          list="service-options"
                           {...serviceInput(service, "name", {
-                            rows: 2,
                             placeholder: "Describe the service",
                           })}
                         />
@@ -523,6 +576,11 @@ export default function App() {
                     </div>
                   ))}
                 </div>
+                <datalist id="service-options">
+                  {SERVICE_OPTIONS.map((option) => (
+                    <option key={option} value={option} />
+                  ))}
+                </datalist>
                 <button
                   className="add-button"
                   id="services-add"

@@ -7,9 +7,20 @@ export const CURRENCIES = [
   { code: "KWD", name: "Kuwaiti Dinar", decimals: 3, symbol: "KWD " },
 ];
 
+export const SERVICE_OPTIONS = [
+  "Social media handling",
+  "Social media handling + lead generation",
+  "lead generation",
+  "Website",
+  "Google my business",
+  "Videography Photography",
+  "Editing",
+  "Videography Photography + editing",
+];
+
 const currencyInfo = (code) => CURRENCIES.find((item) => item.code === code);
 
-export function createInitialReceipt() {
+export function todayInKolkata() {
   const parts = new Intl.DateTimeFormat("en-GB", {
     timeZone: "Asia/Kolkata",
     year: "numeric",
@@ -17,11 +28,48 @@ export function createInitialReceipt() {
     day: "2-digit",
   }).formatToParts(new Date());
   const part = (type) => parts.find((value) => value.type === type).value;
-  const date = `${part("year")}-${part("month")}-${part("day")}`;
+  return `${part("year")}-${part("month")}-${part("day")}`;
+}
+
+const RECEIPT_NUMBER_KEY = "adplix-next-receipt-number";
+let inMemoryReceiptNumber = 185;
+
+export function getNextReceiptNumber(
+  previousNumber,
+  storage = globalThis.localStorage,
+) {
+  const previous = String(previousNumber ?? "").trim();
+  if (/^\d+$/.test(previous)) {
+    const next = Number(previous) + 1;
+    if (Number.isSafeInteger(next)) {
+      try {
+        storage?.setItem(RECEIPT_NUMBER_KEY, String(next + 1));
+      } catch {
+        // The receipt number still advances when browser storage is unavailable.
+      }
+      return String(next).padStart(previous.length, "0");
+    }
+  }
+  try {
+    if (!storage) throw new Error("Storage unavailable");
+    const stored = storage.getItem(RECEIPT_NUMBER_KEY);
+    const current = stored === null ? 185 : Number(stored);
+    if (!/^\d+$/.test(String(current)) || !Number.isSafeInteger(current))
+      throw new Error("Corrupt receipt number");
+    storage.setItem(RECEIPT_NUMBER_KEY, String(current + 1));
+    return String(current);
+  } catch {
+    const current = inMemoryReceiptNumber;
+    inMemoryReceiptNumber += 1;
+    return String(current);
+  }
+}
+
+export function createInitialReceipt(number) {
   return {
     documentType: "RECEIPT",
-    number: "184",
-    date,
+    number: number === undefined ? getNextReceiptNumber() : number,
+    date: todayInKolkata(),
     currency: "INR",
     customer: { organisation: "", phone: "", contact: "" },
     business: {
@@ -34,9 +82,9 @@ export function createInitialReceipt() {
     services: [
       {
         id: "1",
-        name: "Social Media Handling + Lead Generation",
-        price: "30000",
-        paid: "30000",
+        name: "",
+        price: "",
+        paid: "",
       },
     ],
   };

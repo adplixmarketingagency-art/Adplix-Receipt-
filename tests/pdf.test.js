@@ -17,8 +17,9 @@ globalThis.fetch = async (url) => {
 };
 
 const example = () => ({
-  ...createInitialReceipt(),
+  ...createInitialReceipt("184"),
   customer: { organisation: "Example Studio", contact: "", phone: "" },
+  services: [{ id: "1", name: "Example service", price: "30000", paid: "30000" }],
 });
 
 async function checkDocument(receipt) {

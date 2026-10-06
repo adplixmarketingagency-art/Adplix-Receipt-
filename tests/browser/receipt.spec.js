@@ -9,9 +9,18 @@ test("edit multiple services, preview accurate totals, remove, and download", as
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.goto("/");
   await expect(
+    page.getByRole("button", { name: "New Receipt" }).first(),
+  ).toBeVisible();
+  await expect(page.getByLabel("Organisation name")).toHaveCount(0);
+  await page.getByRole("button", { name: "New Receipt" }).first().click();
+  await expect(
     page.getByRole("img", { name: "Receipt preview page 1" }),
   ).toBeVisible();
+  await expect(page.getByLabel("Service", { exact: true })).toHaveValue("");
+  await expect(page.getByLabel("Price (INR)", { exact: true })).toHaveValue("");
+  await expect(page.locator("#service-options option")).toHaveCount(8);
   await page.getByLabel("Organisation name").fill("Example Studio");
+  await page.getByLabel("Service", { exact: true }).first().fill("Social media handling");
   await page.getByLabel("Price (INR)", { exact: true }).fill("0.10");
   await page.getByLabel("Amount paid (INR)", { exact: true }).fill("0.10");
   await page.getByRole("button", { name: "Add another service" }).click();
@@ -19,7 +28,7 @@ test("edit multiple services, preview accurate totals, remove, and download", as
     page.getByRole("heading", { name: "Services", exact: true }),
   ).toBeVisible();
   await page
-    .getByLabel("Description", { exact: true })
+    .getByLabel("Service", { exact: true })
     .nth(1)
     .fill("Video production");
   await page.getByLabel("Price (INR)", { exact: true }).nth(1).fill("0.20");
@@ -29,7 +38,7 @@ test("edit multiple services, preview accurate totals, remove, and download", as
   await expect(page.locator(".preview-paper")).toContainText("Example Studio");
   await expect(page.locator(".preview-paper")).toContainText("₹0.30");
   await page.getByRole("radio", { name: "Invoice", exact: true }).check();
-  await expect(page.locator(".preview-paper")).toContainText("INVOICE NO: 184");
+  await expect(page.locator(".preview-paper")).toContainText("INVOICE NO: 185");
   await page.getByRole("button", { name: "Remove item 2" }).click();
   await expect(page.locator(".total-panel .total-row").first()).toContainText(
     "₹0.10",
@@ -37,7 +46,7 @@ test("edit multiple services, preview accurate totals, remove, and download", as
   const downloadPromise = page.waitForEvent("download");
   await page.locator(".heading-download").click();
   const download = await downloadPromise;
-  expect(download.suggestedFilename()).toBe("invoice-184.pdf");
+  expect(download.suggestedFilename()).toBe("invoice-185.pdf");
   const bytes = await readFile(await download.path());
   expect(bytes.subarray(0, 5).toString()).toBe("%PDF-");
   await expect(page.locator(".heading-download")).toBeEnabled();
@@ -59,6 +68,7 @@ test("invalid, blank, and negative amounts never crash and block export", async 
   page.on("pageerror", (error) => exceptions.push(error.message));
   page.on("download", (download) => downloads.push(download));
   await page.goto("/");
+  await page.getByRole("button", { name: "New Receipt" }).first().click();
   await page.locator(".heading-download").click();
   await expect(page.locator(".error-summary")).toBeFocused();
   await expect(page.getByLabel("Organisation name")).toHaveAttribute(
@@ -85,11 +95,24 @@ test("invalid, blank, and negative amounts never crash and block export", async 
   expect(downloads).toEqual([]);
 });
 
+test("new receipt increments the current receipt number", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "New Receipt" }).first().click();
+  const number = page.getByLabel("Document number");
+  await expect(number).toHaveValue("185");
+  await number.fill("500");
+  await page.getByRole("button", { name: "New Receipt" }).last().click();
+  await expect(page.getByLabel("Document number")).toHaveValue("501");
+  await expect(page.getByLabel("Service", { exact: true })).toHaveValue("");
+  await expect(page.getByLabel("Price (INR)", { exact: true })).toHaveValue("");
+});
+
 test("phone layout has no page overflow and supports optional business settings", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 375, height: 812 });
   await page.goto("/");
+  await page.getByRole("button", { name: "New Receipt" }).first().click();
   await expect(
     page.getByRole("img", { name: "Receipt preview page 1" }),
   ).toBeVisible();
@@ -122,12 +145,16 @@ test("PDF asset failure shows an error and recovers on retry", async ({
 }) => {
   await page.route("**/assets/Poppins-Regular.ttf", (route) => route.abort());
   await page.goto("/");
+  await page.getByRole("button", { name: "New Receipt" }).first().click();
   await expect(
     page.getByText(
       "The preview could not be generated. Edit a field to try again.",
     ),
   ).toBeVisible();
   await page.getByLabel("Organisation name").fill("Example Studio");
+  await page.getByLabel("Service", { exact: true }).fill("Website");
+  await page.getByLabel("Price (INR)", { exact: true }).fill("100");
+  await page.getByLabel("Amount paid (INR)", { exact: true }).fill("100");
   await page.locator(".heading-download").click();
   await expect(page.locator(".error-summary")).toContainText(
     "Your PDF could not be downloaded",
@@ -135,5 +162,5 @@ test("PDF asset failure shows an error and recovers on retry", async ({
   await page.unroute("**/assets/Poppins-Regular.ttf");
   const downloadPromise = page.waitForEvent("download");
   await page.locator(".heading-download").click();
-  expect((await downloadPromise).suggestedFilename()).toBe("receipt-184.pdf");
+  expect((await downloadPromise).suggestedFilename()).toBe("receipt-185.pdf");
 });

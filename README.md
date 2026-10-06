@@ -19,9 +19,11 @@ npm run dev -- --port 5184 --strictPort
 
 ## Use
 
-- Choose Receipt or Invoice, document number, date, and currency.
+- The app opens to a blank start screen. Click **New Receipt** to open a fresh receipt. New receipts start with a blank service row and no customer or price data.
+- Choose Receipt or Invoice, document number, date, and currency. The date is set to the current date in India each time **New Receipt** is clicked and remains editable.
+- Receipt numbers advance when creating a new receipt: `184` → `185`; if you manually enter `500`, the next new receipt is `501`. The number remains editable.
 - Enter the customer organisation; phone and contact are optional.
-- Add/remove services. Each row has a price and optional amount paid. Blank paid means zero. Amount paid cannot exceed its price.
+- Add/remove services. Each row has an editable service field with the predefined suggestions, a manual price, and an optional amount paid. Blank paid means zero. Amount paid cannot exceed its price.
 - Expand **Business & payment details** to change the sender or add bank information. The sender defaults come from the supplied reference; customer and bank fields start blank.
 - **Download PDF** validates the current data and generates a fresh PDF. Nothing is automatically stored, uploaded, or sent to a server. Reloading resets the draft; download your PDF before closing the page.
 

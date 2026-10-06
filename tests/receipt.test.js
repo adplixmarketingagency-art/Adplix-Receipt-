@@ -7,11 +7,20 @@ import {
   calculateTotals,
   validateReceipt,
   amountInWords,
+  SERVICE_OPTIONS,
+  getNextReceiptNumber,
+  todayInKolkata,
 } from "../src/lib/receipt.js";
 
 const validReceipt = () => {
   const receipt = createInitialReceipt();
   receipt.customer.organisation = "Example Studio";
+  receipt.services[0] = {
+    id: "1",
+    name: "Example service",
+    price: "1",
+    paid: "",
+  };
   return receipt;
 };
 
@@ -127,4 +136,30 @@ test("initial receipt uses an ISO date and never seeds customer or banking data"
   assert.match(receipt.date, /^\d{4}-\d{2}-\d{2}$/);
   assert.equal(receipt.customer.organisation, "");
   assert.ok(Object.values(receipt.payment).every((value) => value === ""));
+  assert.deepEqual(receipt.services, [
+    { id: "1", name: "", price: "", paid: "" },
+  ]);
+});
+
+test("service suggestions and fresh numbers are deterministic with fake storage", () => {
+  assert.deepEqual(SERVICE_OPTIONS, [
+    "Social media handling",
+    "Social media handling + lead generation",
+    "lead generation",
+    "Website",
+    "Google my business",
+    "Videography Photography",
+    "Editing",
+    "Videography Photography + editing",
+  ]);
+  const values = new Map();
+  const storage = {
+    getItem: (key) => values.get(key) ?? null,
+    setItem: (key, value) => values.set(key, String(value)),
+  };
+  assert.equal(getNextReceiptNumber(undefined, storage), "185");
+  assert.equal(getNextReceiptNumber(undefined, storage), "186");
+  assert.equal(getNextReceiptNumber("500", storage), "501");
+  assert.equal(getNextReceiptNumber("009", storage), "010");
+  assert.match(todayInKolkata(), /^\d{4}-\d{2}-\d{2}$/);
 });

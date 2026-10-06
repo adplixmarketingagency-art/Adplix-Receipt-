@@ -681,3 +681,49 @@ button:disabled {
     min-height: 300px;
   }
 }
+:focus-visible {
+  outline: 3px solid #c45b35;
+  outline-offset: 3px;
+}
+
+.empty-state {
+  min-height: calc(100vh - 86px);
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 14px;
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.empty-state img {
+  width: 58px;
+  height: auto;
+  margin-bottom: 8px;
+}
+
+.empty-state h1,
+.empty-state p {
+  margin: 0;
+}
+
+.empty-state p {
+  color: var(--muted, #6f6a64);
+}
+
+.compact-new {
+  margin-left: 10px;
+}
+
+.button-secondary {
+  border: 1px solid #d7d0c8;
+  background: #fff;
+  color: #252525;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-weight: 700;
+}
+
+.button-secondary:hover {
+  background: #f3eee8;
+}
